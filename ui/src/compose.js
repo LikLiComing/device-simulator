@@ -358,32 +358,43 @@ function scriptContract(protocol, fields) {
   };
 }
 
+const BENCHMARK_FLAGS = {
+  mqtt: ["host", "port", "clientId", "username", "password", "topics", "size", "index", "name", "concurrency", "reconnect", "script", "interface", "ssl"],
+  tcp: ["id", "host", "port", "delimited", "fixedLength", "lengthField", "size", "index", "name", "concurrency", "reconnect", "script", "interface", "ssl"],
+  udp: ["id", "host", "port", "size", "index", "name", "concurrency", "reconnect", "script", "interface"],
+  http: ["id", "url", "header", "shared", "size", "index", "name", "concurrency", "reconnect", "script", "interface", "ssl"],
+  coap: ["id", "url", "option", "size", "index", "name", "concurrency", "reconnect", "script", "interface"],
+  "coap-tcp": ["id", "url", "option", "size", "index", "name", "concurrency", "reconnect", "script", "interface"],
+};
+
+const CREATE_FLAGS = {
+  mqtt: { flags: ["host", "port", "clientId", "username", "password", "topics", "interface", "ssl"], positional: "" },
+  tcp: { flags: ["id", "host", "port", "delimited", "fixedLength", "lengthField", "interface", "ssl"], positional: "" },
+  udp: { flags: ["id", "host", "port", "interface"], positional: "" },
+  http: { flags: ["id", "header", "interface", "ssl"], positional: "url" },
+  coap: { flags: ["id", "option", "interface"], positional: "url" },
+  "coap-tcp": { flags: ["id", "option", "interface"], positional: "url" },
+};
+
+const BOOLEAN_FLAGS = new Set(["ssl", "reconnect"]);
+
+function appendAllowedFlags(argv, flags, allow, fields) {
+  for (const name of allow) {
+    if (!Object.prototype.hasOwnProperty.call(fields, name) && text(fields[name]) === "") {
+      continue;
+    }
+    if (BOOLEAN_FLAGS.has(name)) {
+      pushBool(argv, flags, name, fields[name]);
+    } else {
+      pushFlag(argv, flags, name, fields[name]);
+    }
+  }
+}
+
 function benchmarkStart(protocol, fields) {
-  const spec = PROTOCOLS[protocol];
   const argv = ["benchmark", protocol];
   const flags = {};
-  pushFlag(argv, flags, "host", fields.host);
-  pushFlag(argv, flags, "port", fields.port);
-  pushFlag(argv, flags, "url", fields.url);
-  pushFlag(argv, flags, "id", fields.id);
-  pushFlag(argv, flags, "clientId", fields.clientId);
-  pushFlag(argv, flags, "username", fields.username);
-  pushFlag(argv, flags, "password", fields.password);
-  pushFlag(argv, flags, "size", fields.size);
-  pushFlag(argv, flags, "index", fields.index);
-  pushFlag(argv, flags, "name", fields.name);
-  pushFlag(argv, flags, "concurrency", fields.concurrency);
-  pushBool(argv, flags, "reconnect", fields.reconnect);
-  pushFlag(argv, flags, "script", fields.script);
-  pushFlag(argv, flags, "interface", fields.interface);
-  pushBool(argv, flags, "ssl", fields.ssl);
-  pushFlag(argv, flags, "delimited", fields.delimited);
-  pushFlag(argv, flags, "fixedLength", fields.fixedLength);
-  pushFlag(argv, flags, "lengthField", fields.lengthField);
-  pushFlag(argv, flags, "header", fields.header);
-  pushFlag(argv, flags, "shared", fields.shared);
-  pushFlag(argv, flags, "option", fields.option);
-  pushFlag(argv, flags, "topics", fields.topics);
+  appendAllowedFlags(argv, flags, BENCHMARK_FLAGS[protocol], fields);
   const scriptArgs = scriptArgList(fields);
   appendScriptArgs(argv, scriptArgs);
   const name = text(fields.name) || protocol;
@@ -473,23 +484,11 @@ function benchmarkSession(action, fields) {
 
 function singleCreate(protocol, fields) {
   const spec = SINGLE[protocol];
+  const allow = CREATE_FLAGS[protocol];
   const argv = [spec.command, spec.create];
   const flags = {};
-  pushFlag(argv, flags, "id", fields.id);
-  pushFlag(argv, flags, "host", fields.host);
-  pushFlag(argv, flags, "port", fields.port);
-  pushFlag(argv, flags, "clientId", fields.clientId);
-  pushFlag(argv, flags, "username", fields.username);
-  pushFlag(argv, flags, "password", fields.password);
-  pushFlag(argv, flags, "topics", fields.topics);
-  pushFlag(argv, flags, "header", fields.header);
-  pushFlag(argv, flags, "option", fields.option);
-  pushFlag(argv, flags, "delimited", fields.delimited);
-  pushFlag(argv, flags, "fixedLength", fields.fixedLength);
-  pushFlag(argv, flags, "lengthField", fields.lengthField);
-  pushFlag(argv, flags, "interface", fields.interface);
-  pushBool(argv, flags, "ssl", fields.ssl);
-  if (text(fields.url)) {
+  appendAllowedFlags(argv, flags, allow.flags, fields);
+  if (allow.positional === "url" && text(fields.url)) {
     flags.url = text(fields.url);
     argv.push(quote(fields.url));
   }
@@ -744,11 +743,15 @@ function field(name, label, value, extra = {}) {
   return { name, label, value: value ?? "", ...extra };
 }
 
-function netFields(defaults = {}) {
-  return [
-    field("interface", "网卡 --interface", defaults.interface || "", { hint: "对应 CLI --interface，例如 192.168.1.8" }),
-    field("ssl", "SSL --ssl", defaults.ssl || "false", { kind: "bool" }),
-  ];
+function netFields(allow) {
+  const fields = [];
+  if (allow.includes("interface")) {
+    fields.push(field("interface", "网卡 --interface", "", { hint: "对应 CLI --interface，例如 192.168.1.8" }));
+  }
+  if (allow.includes("ssl")) {
+    fields.push(field("ssl", "SSL --ssl", "false", { kind: "bool" }));
+  }
+  return fields;
 }
 
 function benchmarkCommon(protocol) {
@@ -789,14 +792,22 @@ export const surfaces = [
   ...["mqtt", "tcp", "udp", "http", "coap", "coap-tcp"].flatMap((protocol) => {
     const spec = PROTOCOLS[protocol];
     const demo = spec.readmeDemo;
+    const createAllow = CREATE_FLAGS[protocol];
+    const benchAllow = BENCHMARK_FLAGS[protocol];
     const singleFields = [
       protocol === "mqtt"
         ? field("clientId", "客户端 ID --clientId", spec.singleClientIdDefault)
         : field("id", "连接 ID --id", spec.singleIdDefault || ""),
-      field("host", "主机 --host", demo.host || "127.0.0.1"),
-      field("port", "端口 --port", demo.port || ""),
-      field("url", "地址 --url / 位置参数", demo.url || ""),
     ];
+    if (createAllow.flags.includes("host")) {
+      singleFields.push(field("host", "主机 --host", demo.host || "127.0.0.1"));
+    }
+    if (createAllow.flags.includes("port")) {
+      singleFields.push(field("port", "端口 --port", demo.port || ""));
+    }
+    if (createAllow.positional === "url") {
+      singleFields.push(field("url", "地址（位置参数，不是 --host）", demo.url || ""));
+    }
     if (protocol === "mqtt") {
       singleFields.push(
         field("username", "用户名 --username", spec.cliUsernameDefault),
@@ -831,13 +842,13 @@ export const surfaces = [
     if (protocol === "coap" || protocol === "coap-tcp") {
       singleFields.push(field("option", "选项 --option", ""), field("format", "格式 --format", ""));
     }
-    singleFields.push(...netFields());
+    singleFields.push(...netFields(createAllow.flags));
     const benchFields = [...benchmarkCommon(protocol)];
-    if (demo.host) {
-      benchFields.unshift(field("port", "端口 --port", demo.port || ""), field("host", "主机 --host", demo.host));
+    if (benchAllow.includes("host")) {
+      benchFields.unshift(field("port", "端口 --port", demo.port || ""), field("host", "主机 --host", demo.host || "127.0.0.1"));
     }
-    if (demo.url) {
-      benchFields.unshift(field("url", "地址 --url", demo.url));
+    if (benchAllow.includes("url")) {
+      benchFields.unshift(field("url", "地址 --url", demo.url || ""));
     }
     if (protocol === "tcp" || protocol === "udp") {
       benchFields.unshift(field("id", "设备 ID 模板 --id", demo.id || spec.cliIdDefault));
@@ -851,7 +862,7 @@ export const surfaces = [
         field("password", "CLI 密码 --password", spec.cliPasswordDefault),
       );
     }
-    benchFields.push(...netFields());
+    benchFields.push(...netFields(benchAllow));
     if (protocol === "tcp") {
       benchFields.push(field("lengthField", "长度字段 --lengthField", "0,4"));
     }

@@ -321,6 +321,96 @@ test("single-connection families compose create, attach, send and close", () => 
   assert.equal(coapTcpBench.createsPlatformDevices, false);
 });
 
+function flagNames(command) {
+  return command.split(/\s+/).flatMap((token) => {
+    const match = token.match(/^--([A-Za-z0-9-]+)/);
+    return match ? [match[1]] : [];
+  });
+}
+
+test("default create and benchmark commands emit only picocli-defined flags", () => {
+  const benchmarkCommon = ["name", "index", "size", "reconnect", "concurrency", "script"];
+  const cases = [
+    {
+      family: "http",
+      action: "create",
+      allowed: ["id", "header", "interface", "ssl", "trustAll", "key-path", "cert-path", "trust-path"],
+      absent: ["host", "port"],
+    },
+    {
+      family: "udp",
+      action: "create",
+      allowed: ["id", "host", "port", "interface"],
+      absent: ["ssl", "url"],
+    },
+    {
+      family: "coap",
+      action: "create",
+      allowed: ["id", "option", "interface"],
+      absent: ["host", "port", "ssl", "url"],
+    },
+    {
+      family: "coap-tcp",
+      action: "create",
+      allowed: ["id", "option", "interface"],
+      absent: ["host", "port", "ssl", "url"],
+    },
+    {
+      family: "benchmark-udp",
+      action: "start",
+      allowed: ["id", "host", "port", "interface", ...benchmarkCommon],
+      absent: ["ssl", "url"],
+    },
+    {
+      family: "benchmark-coap",
+      action: "start",
+      allowed: ["id", "option", "url", "interface", ...benchmarkCommon],
+      absent: ["host", "port", "ssl"],
+    },
+    {
+      family: "benchmark-coap-tcp",
+      action: "start",
+      allowed: ["id", "option", "url", "interface", ...benchmarkCommon],
+      absent: ["host", "port", "ssl"],
+    },
+  ];
+  for (const item of cases) {
+    const defaults = defaultsFor(item.family);
+    const operation = composeOperation({
+      family: item.family,
+      action: item.action,
+      fields: { ...defaults, host: "127.0.0.1", port: "80", ssl: "false" },
+    });
+    const names = flagNames(operation.command);
+    assert.deepEqual(
+      names.filter((name) => !item.allowed.includes(name)),
+      [],
+      operation.command,
+    );
+    for (const name of item.absent) {
+      assert.equal(names.includes(name), false, `${item.family} emitted --${name}: ${operation.command}`);
+    }
+    const plain = composeOperation({ family: item.family, action: item.action, fields: defaults });
+    const plainNames = flagNames(plain.command);
+    assert.deepEqual(
+      plainNames.filter((name) => !item.allowed.includes(name)),
+      [],
+      plain.command,
+    );
+  }
+  const http = composeOperation({ family: "http", action: "create", fields: defaultsFor("http") });
+  assert.match(http.command, /^http create --id=http-client\b/);
+  assert.match(http.command, / http:\/\/127\.0\.0\.1:8801$/);
+  assert.doesNotMatch(http.command, /--host/);
+  const udp = composeOperation({ family: "udp", action: "create", fields: defaultsFor("udp") });
+  assert.match(udp.command, /^udp create --id=udp-client --host=127\.0\.0\.1 --port=8806$/);
+  assert.doesNotMatch(udp.command, /--ssl/);
+  const coap = composeOperation({ family: "coap", action: "create", fields: defaultsFor("coap") });
+  assert.equal(coap.command, "coap create --id=coap-client coap://127.0.0.1:5683");
+  const coapTcp = composeOperation({ family: "coap-tcp", action: "create", fields: defaultsFor("coap-tcp") });
+  assert.equal(coapTcp.command, "coap-tcp create --id=coap-tcp-client coap://127.0.0.1:5683");
+});
+
 test("list and exec do not read a platform device inventory", () => {
   const list = composeOperation({
     family: "list",
