@@ -105,6 +105,7 @@ test("tcp and udp benchmarks keep id template, secureKey and binary protocol", (
   assert.equal(tcp.flags.interface, "192.168.1.8");
   assert.equal(tcp.contract.secureKey, "test");
   assert.equal(tcp.contract.protocolFile, "benchmark/jetlinks-binary-protocol.js");
+  assert.match(presentOperation({ family: "benchmark-tcp", action: "start", fields: fields("benchmark-tcp") }).body, /jetlinks-binary-protocol\.js/);
   assert.equal(tcp.contract.report, "true");
   assert.equal(tcp.createsPlatformDevices, false);
 

@@ -308,6 +308,9 @@ function scriptContract(protocol, fields) {
   if (spec.note) {
     notes.push(spec.note);
   }
+  if (spec.protocol) {
+    notes.push(`脚本引用 ${spec.protocol}。`);
+  }
   if (spec.auth) {
     notes.push(spec.auth);
   }
@@ -728,15 +731,8 @@ export function composeOperation(input) {
 
 export function presentOperation(input) {
   const operation = composeOperation(input);
-  const lines = [
-    operation.command,
-    "",
-    DEVICE_FACTS.note,
-    ...(operation.contract && operation.contract.notes ? operation.contract.notes : []),
-  ];
-  if (operation.contract && operation.contract.readmeMismatch) {
-    lines.push(operation.contract.readmeMismatch);
-  }
+  const notes = operation.contract && operation.contract.notes ? operation.contract.notes : [DEVICE_FACTS.note];
+  const lines = [operation.command, "", ...notes];
   return {
     ...operation,
     headline: operation.steps ? operation.steps.join("\n") : operation.command,
