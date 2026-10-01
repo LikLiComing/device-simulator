@@ -1,0 +1,13 @@
+{
+  "name": "device-simulator-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "test": "node --test src/compose.test.js",
+    "preview": "vite preview --host 127.0.0.1 --port 5173 --strictPort"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

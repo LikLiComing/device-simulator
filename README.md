@@ -46,3 +46,14 @@ benchmark tcp --size=1 --id=tcp-test-{index} --name=tcp --host=127.0.0.1 --port=
 ### 常见问题
 
 1. 连接提示`no further information ...`,请在启动或者创建连接时指定网卡信息 `benchmark --interface 192....`
+
+## 操作界面
+
+Java CLI 仍是模拟器本体。仓库另有一个只组包命令的界面，用来对照下面这些 CLI 与脚本约定，不会连接平台，也不会创建设备。
+
+```bash
+npm install
+npm run dev
+```
+
+界面里的 `--host`、`--port`、`--url`、`--id`、`--clientId`、`--username`、`--password`、`--size`、`--index`、`--name`、`--concurrency`、`--reconnect`、`--script`、`--interface`、`--ssl` 以及尾部 `key=value` 与 picocli 含义相同。MQTT 演示以 `benchmark/mqtt/benchmark.js` 为准：实际上线 ID 是 `test-{index}`，不是上文 README 示例里的 `mqtt-test-{index}`。

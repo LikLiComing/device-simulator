@@ -27,3 +27,6 @@ hs_err_pid*
 !dist/device-simulator.jar
 history
 Californium3.properties
+node_modules/
+ui/node_modules/
+ui/dist/

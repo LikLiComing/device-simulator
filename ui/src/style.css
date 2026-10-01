@@ -1,0 +1,151 @@
+:root {
+  color-scheme: dark;
+  --bg: #12160f;
+  --panel: #1c2418;
+  --ink: #e7efd8;
+  --muted: #a8b79a;
+  --line: #31402a;
+  --accent: #d6ff4a;
+  --accent-ink: #172000;
+  --warn: #ffb15a;
+  --result: #0d120c;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(214, 255, 74, 0.05), transparent 220px),
+    var(--bg);
+  color: var(--ink);
+}
+
+button, input, textarea {
+  font: inherit;
+}
+
+.wrap {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 64px;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  letter-spacing: -0.04em;
+}
+
+header p, .blurb, .hint {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  margin: 20px 0 28px;
+}
+
+.card, .surface, .result {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.card, .result { padding: 16px 18px; }
+
+.card strong, .surface h2 { color: var(--accent); }
+
+.warn { color: var(--warn); }
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.nav a {
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #151b12;
+}
+
+.surface {
+  padding: 16px;
+  margin: 0 0 16px;
+}
+
+.surface h2 { margin: 0 0 6px; font-size: 20px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+input, textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #10150e;
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+textarea { min-height: 72px; resize: vertical; }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+button {
+  border: 0;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+button.secondary { background: #2a3824; color: var(--ink); }
+
+.result {
+  position: sticky;
+  bottom: 12px;
+  margin-top: 18px;
+}
+
+.result pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--result);
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 96px;
+  margin: 8px 0 0;
+}
+
+@media (max-width: 800px) {
+  .facts, .grid { grid-template-columns: 1fr; }
+  header h1 { font-size: 26px; }
+}

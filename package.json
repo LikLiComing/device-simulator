@@ -1,0 +1,8 @@
+{
+  "name": "device-simulator",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix ui",
+    "test": "npm test --prefix ui"
+  }
+}
